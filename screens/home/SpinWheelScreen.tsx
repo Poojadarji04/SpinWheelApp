@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,12 +9,22 @@ import {
   Dimensions,
   SafeAreaView,
   StatusBar,
-  Modal,
   Vibration,
+  Platform,
 } from "react-native";
 import Svg, { Path, G, Text as SvgText, Circle, Line } from "react-native-svg";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SPINS_PER_AD } from "./AppUtility";
 
+import { Image } from "react-native";
+import {
+  InterstitialAd,
+  AdEventType,
+  TestIds,
+} from "react-native-google-mobile-ads";
+const interstitial = InterstitialAd.createForAdRequest(
+  TestIds.INTERSTITIAL
+);
 const { width, height } = Dimensions.get("window");
 const WHEEL_SIZE = width - 48;
 const R = WHEEL_SIZE / 2;
@@ -32,7 +42,52 @@ const CONFETTI_COLORS = [
 
 const CONFETTI_SHAPES = ["square", "circle", "triangle", "rect"];
 
+import {
+  initSounds,
+
+  playWin,
+  releaseSounds,
+} from "./SoundUtility";
+
+const SPIN_COUNT_KEY = "GLOBAL_SPIN_COUNT";
+
+const getSpinCount = async () => {
+  try {
+    const val = await AsyncStorage.getItem(SPIN_COUNT_KEY);
+    return val ? parseInt(val, 10) : 0;
+  } catch {
+    return 0;
+  }
+};
+
+const incrementSpinCount = async () => {
+  try {
+    const current = await getSpinCount();
+    const updated = current + 1;
+    await AsyncStorage.setItem(SPIN_COUNT_KEY, updated.toString());
+    return updated;
+  } catch {
+    return 0;
+  }
+};
+
+const resetSpinCount = async () => {
+  await AsyncStorage.setItem(SPIN_COUNT_KEY, "0");
+};
+
 function toRad(deg) { return (deg * Math.PI) / 180; }
+
+function getFontSize(text, totalSegments) {
+  const base = totalSegments <= 4 ? 22 : totalSegments <= 6 ? 18 : 14;
+
+  const length = text.length;
+
+  if (length <= 6) return base;
+  if (length <= 10) return base - 2;
+  if (length <= 14) return base - 4;
+
+  return Math.max(base - 6, 10); // never go below 10
+}
 
 function getArcPath(cx, cy, r, startDeg, endDeg) {
   const start = toRad(startDeg - 90);
@@ -58,7 +113,7 @@ function WheelSvg({ segments }) {
         const lx = R + labelR * Math.cos(midRad);
         const ly = R + labelR * Math.sin(midRad);
         const labelRotation = midDeg > 180 ? midDeg - 180 : midDeg;
-        const fontSize = segments.length > 7 ? 10 : segments.length > 5 ? 12 : 14;
+const fontSize = getFontSize(seg, segments.length);
 
         return (
           <G key={i}>
@@ -179,6 +234,8 @@ export default function SpinWheelScreen({ route, navigation }) {
   const segments = wheel?.segments || [];
   const sliceAngle = 360 / segments.length;
 
+  const spinCount = useRef(0);
+  const [isAdLoaded, setIsAdLoaded] = useState(false);
   const rotationDeg = useRef(0);
   const animatedRot = useRef(new Animated.Value(0)).current;
   const [isSpinning, setIsSpinning] = useState(false);
@@ -195,6 +252,57 @@ export default function SpinWheelScreen({ route, navigation }) {
     );
   }
 
+useEffect(() => {
+  initSounds();
+
+  return () => {
+    releaseSounds();
+  };
+}, []);
+
+const lastTick = useRef(-1);
+
+useEffect(() => {
+  const listener = animatedRot.addListener(({ value }) => {
+    const currentDeg = value % 360;
+    const slice = 360 / segments.length;
+
+    const index = Math.floor(currentDeg / slice);
+
+    if (index !== lastTick.current) {
+      lastTick.current = index;
+
+      Vibration.vibrate(10);
+    }
+  });
+
+  return () => {
+    animatedRot.removeListener(listener);
+  };
+}, [segments.length]);
+
+  useEffect (() => {
+  const unsubscribeLoaded = interstitial.addAdEventListener(
+    AdEventType.LOADED,
+    () => setIsAdLoaded(true)
+  );
+
+  const unsubscribeClosed = interstitial.addAdEventListener(
+    AdEventType.CLOSED,
+    () => {
+      setIsAdLoaded(false);
+      interstitial.load();
+    }
+  );
+
+  interstitial.load();
+
+  return () => {
+    unsubscribeLoaded();
+    unsubscribeClosed();
+  };
+}, []);
+
   const handleSpin = () => {
     if (isSpinning) return;
     setIsSpinning(true);
@@ -202,7 +310,7 @@ export default function SpinWheelScreen({ route, navigation }) {
     setResult(null);
     resultAnim.setValue(0);
     resultSlideAnim.setValue(60);
-
+lastTick.current = -1;
     const winIndex = Math.floor(Math.random() * segments.length);
     const segCenter = winIndex * sliceAngle + sliceAngle / 2;
     const neededAngle = (360 - segCenter) % 360;
@@ -230,13 +338,25 @@ export default function SpinWheelScreen({ route, navigation }) {
       setIsSpinning(false);
       setShowResult(true);
 
-      // ✅ Vibration instead of sound — no native linking needed
-      Vibration.vibrate([0, 80, 60, 150]);
-
+Vibration.vibrate(100);
+playWin();
       Animated.parallel([
         Animated.spring(resultAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
         Animated.spring(resultSlideAnim, { toValue: 0, tension: 60, friction: 8, useNativeDriver: true }),
       ]).start();
+
+
+
+      const updatedCount = await incrementSpinCount();
+
+if (updatedCount % 2 === 0 && isAdLoaded) {
+  setTimeout(() => {
+    interstitial.show();
+  }, 800);
+
+}
+
+
     });
   };
 
@@ -307,24 +427,19 @@ export default function SpinWheelScreen({ route, navigation }) {
           </Text>
         </TouchableOpacity>
       ) : (
-        <Animated.View
-          style={[
-            styles.bottomButtons,
-            { opacity: resultAnim, transform: [{ translateY: resultSlideAnim }] },
-          ]}
-        >
-          <TouchableOpacity style={styles.shareBtn}>
-            <Text style={styles.shareIcon}>⬆️</Text>
-            <Text style={styles.shareBtnText}>Share Result</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.spinAgainBtn}
-            onPress={() => { setShowResult(false); setResult(null); }}
-          >
-            <Text style={styles.spinAgainText}>SPIN AGAIN</Text>
-          </TouchableOpacity>
-        </Animated.View>
+       <Animated.View
+  style={[
+    styles.bottomButtons,
+    { opacity: resultAnim, transform: [{ translateY: resultSlideAnim }] },
+  ]}
+>
+  <TouchableOpacity
+    style={styles.spinAgainBtn}
+    onPress={handleSpin}
+  >
+    <Text style={styles.spinAgainText}>SPIN AGAIN</Text>
+  </TouchableOpacity>
+</Animated.View>
       )}
     </SafeAreaView>
   );
@@ -349,12 +464,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#1A1A2E", alignItems: "center", justifyContent: "center",
   },
   topSection: {
-    height: 90,
-    marginTop: 40,
-    marginBottom: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1,
+    height: 90, marginTop: 40, marginBottom: 20,
+    alignItems: "center", justifyContent: "center", zIndex: 1,
   },
   title: { color: "#FFF", fontSize: 26, fontWeight: "800" },
   subtitle: { color: "rgba(255,255,255,0.45)", fontSize: 15, marginTop: 6 },
@@ -369,15 +480,14 @@ const styles = StyleSheet.create({
   spinBtn: {
     position: "absolute", bottom: 36, left: 30, right: 30,
     backgroundColor: "#7C3AED", paddingVertical: 18,
-    borderRadius: 50, alignItems: "center",
-    zIndex: 10,
+    borderRadius: 50, alignItems: "center", zIndex: 10,
   },
   spinText: { color: "#FFF", fontSize: 18, fontWeight: "700" },
   resultYourResult: { color: "rgba(255,255,255,0.6)", fontSize: 16, fontWeight: "500", marginBottom: 4 },
   resultName: { fontSize: 42, fontWeight: "900", letterSpacing: 1, textAlign: "center" },
   bottomButtons: {
     position: "absolute", bottom: 36, left: 0, right: 0,
-    paddingHorizontal: 24, gap: 12, zIndex: 10
+    paddingHorizontal: 24, gap: 12, zIndex: 10,
   },
   shareBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
