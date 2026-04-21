@@ -217,17 +217,24 @@ async function saveHistory(wheelId, result) {
   } catch (e) { }
 }
 
-async function updateLastUsed(wheelId) {
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const wheels = JSON.parse(raw);
-    const updated = wheels.map((w) =>
-      w.id === wheelId ? { ...w, lastUsed: Date.now() } : w
-    );
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  } catch (e) { }
-}
+const updateWheel = async (wheelId: string) => {
+  const raw = await AsyncStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+
+  const wheels = JSON.parse(raw);
+
+  const updated = wheels.map((w: WheelItem) =>
+    w.id === wheelId
+      ? {
+          ...w,
+          spinCount: (w.spinCount || 0) + 1,
+          lastUsed: Date.now(),
+        }
+      : w
+  );
+
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+};
 
 export default function SpinWheelScreen({ route, navigation }) {
   const wheel = route?.params?.wheel;
@@ -332,7 +339,7 @@ lastTick.current = -1;
       const winner = segments[winIndex];
 
       await saveHistory(wheel.id, winner);
-      await updateLastUsed(wheel.id);
+updateWheel(wheel.id);
 
       setResult(winner);
       setIsSpinning(false);
@@ -371,12 +378,15 @@ if (updatedCount % 2 === 0 && isAdLoaded) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+<SafeAreaView style={[styles.safe, { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }]}>
+
       <StatusBar barStyle="light-content" backgroundColor="#080810" />
 
+<View style={styles.orbTopLeft} />
+  <View style={styles.orbBottomRight} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>←</Text>
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <View style={styles.headerRight}>
           <TouchableOpacity
@@ -407,9 +417,10 @@ if (updatedCount % 2 === 0 && isAdLoaded) {
       </View>
 
       <View style={styles.wheelWrap}>
-        <View style={styles.pointerWrap}>
-          <View style={styles.pointer} />
-        </View>
+       <View style={styles.pointerWrap}>
+  <View style={styles.pointer} />
+
+</View>
         <Animated.View style={{ transform: [{ rotate: spin }] }}>
           <WheelSvg segments={segments} />
         </Animated.View>
@@ -446,18 +457,39 @@ if (updatedCount % 2 === 0 && isAdLoaded) {
 }
 
 const styles = StyleSheet.create({
+  
   safe: { flex: 1, backgroundColor: "#080810", alignItems: "center" },
+  orbTopLeft: {
+  position: 'absolute',
+  top: -80,
+  left: -80,
+  width: 220,
+  height: 220,
+  borderRadius: 110,
+  backgroundColor: 'rgba(120,40,220,0.12)',
+},
+
+orbBottomRight: {
+  position: 'absolute',
+  bottom: 80,
+  right: -60,
+  width: 180,
+  height: 180,
+  borderRadius: 90,
+  backgroundColor: 'rgba(20,180,200,0.10)',
+},
   container: { flex: 1, backgroundColor: "#080810", alignItems: "center", justifyContent: "center" },
   header: {
     width: "100%", flexDirection: "row",
     justifyContent: "space-between", alignItems: "center",
     paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4,
   },
-  backBtn: {
-    width: 42, height: 42, borderRadius: 21,
-    backgroundColor: "#1A1A2E", alignItems: "center", justifyContent: "center",
+ backBtn: {
+    paddingHorizontal: 10, height: 42, borderRadius: 21,
+    backgroundColor: "#1A1A2E",
+    alignItems: "center", justifyContent: "center",
   },
-  backText: { color: "#FFF", fontSize: 20 },
+  backText: { color: "#FFF", fontSize: 16 },
   headerRight: { flexDirection: "row", gap: 8 },
   headerIcon: {
     width: 42, height: 42, borderRadius: 21,
@@ -468,14 +500,30 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center", zIndex: 1,
   },
   title: { color: "#FFF", fontSize: 26, fontWeight: "800" },
-  subtitle: { color: "rgba(255,255,255,0.45)", fontSize: 15, marginTop: 6 },
-  pointerWrap: { alignItems: "center", zIndex: 10, marginBottom: -14 },
-  pointer: {
-    width: 0, height: 0,
-    borderLeftWidth: 14, borderRightWidth: 14, borderTopWidth: 30,
-    borderLeftColor: "transparent", borderRightColor: "transparent",
-    borderTopColor: "#7C3AED",
-  },
+  subtitle: { color: '#6C5CE7', fontSize: 22, marginTop: 6, fontWeight : "600" },
+
+ pointerWrap: {
+  alignItems: "center",
+  zIndex: 20,
+  marginBottom: -18,
+},
+
+pointer: {
+  width: 0,
+  height: 0,
+  borderLeftWidth: 16,
+  borderRightWidth: 16,
+  borderTopWidth: 34,
+  borderLeftColor: "transparent",
+  borderRightColor: "transparent",
+  borderTopColor: "#7C3AED",
+  shadowColor: "#7C3AED",
+  shadowOpacity: 0.9,
+  shadowRadius: 10,
+  elevation: 10,
+},
+
+
   wheelWrap: { alignItems: "center", justifyContent: "center", zIndex: 2 },
   spinBtn: {
     position: "absolute", bottom: 36, left: 30, right: 30,

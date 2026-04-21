@@ -71,13 +71,16 @@ export default function SpinHistoryScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+<SafeAreaView style={[styles.safe, { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }]}>
+
       <StatusBar barStyle="light-content" backgroundColor="#080810" />
 
+<View style={styles.orbTopLeft} />
+  <View style={styles.orbBottomRight} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>←</Text>
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Spin History</Text>
         <TouchableOpacity style={styles.deleteBtn} onPress={clearHistory}>
@@ -139,6 +142,25 @@ export default function SpinHistoryScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#080810" },
+  orbTopLeft: {
+  position: 'absolute',
+  top: -80,
+  left: -80,
+  width: 220,
+  height: 220,
+  borderRadius: 110,
+  backgroundColor: 'rgba(120,40,220,0.12)',
+},
+
+orbBottomRight: {
+  position: 'absolute',
+  bottom: 80,
+  right: -60,
+  width: 180,
+  height: 180,
+  borderRadius: 90,
+  backgroundColor: 'rgba(20,180,200,0.10)',
+},
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -148,11 +170,11 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   backBtn: {
-    width: 42, height: 42, borderRadius: 21,
+    paddingHorizontal: 10, height: 42, borderRadius: 21,
     backgroundColor: "#1A1A2E",
     alignItems: "center", justifyContent: "center",
   },
-  backText: { color: "#FFF", fontSize: 20 },
+  backText: { color: "#FFF", fontSize: 16 },
   headerTitle: { color: "#FFF", fontSize: 20, fontWeight: "800" },
   deleteBtn: {
     width: 42, height: 42, borderRadius: 21,
