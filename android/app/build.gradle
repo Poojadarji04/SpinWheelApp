@@ -1,6 +1,10 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+apply plugin: 'com.google.gms.google-services'
+apply plugin: 'com.google.firebase.crashlytics'
+
+
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -49,9 +53,10 @@ react {
     //
     //   The list of flags to pass to the Hermes compiler. By default is "-O", "-output-source-map"
     // hermesFlags = ["-O", "-output-source-map"]
+    nodeExecutableAndArgs = ["/opt/homebrew/bin/node"]
 
-    /* Autolinking */
     autolinkLibrariesWithApp()
+
 }
 
 /**
@@ -79,7 +84,7 @@ android {
 
     namespace "com.spinwheel"
     defaultConfig {
-        applicationId "com.spinwheel"
+        applicationId "com.appziostudio.spinwheel"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

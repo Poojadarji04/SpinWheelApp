@@ -12,24 +12,19 @@ import {
   StyleSheet,
 } from 'react-native';
 
-// ── QuickPickerModal ───────────────────────────────────────────
-// Props:
-//   visible  : boolean  — controls modal open/close
-//   onClose  : ()=>void — called on Cancel or backdrop tap
-//   onConfirm: ({ title: string, segments: string[] }) => void
 
 export default function QuickPickerModal({ visible, onClose, onConfirm }) {
   const [title, setTitle] = useState('');
   const [slicesText, setSlicesText] = useState('');
 
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(80)).current;
 
   // Animate in / out
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.timing(fadeAnim,  { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
         Animated.spring(slideAnim, { toValue: 0, tension: 80, friction: 10, useNativeDriver: true }),
       ]).start();
     } else {
@@ -53,7 +48,7 @@ export default function QuickPickerModal({ visible, onClose, onConfirm }) {
     if (segments.length < 2) {
       Alert.alert(
         'Not Enough Slices',
-        'Enter at least 2 slices separated by commas.\nExample: Pizza, Sushi, Tacos'
+        'Enter at least 2 slices separated by commas.\nExample: Slice 1, Slice 2, Slice 3'
       );
       return;
     }
@@ -72,7 +67,7 @@ export default function QuickPickerModal({ visible, onClose, onConfirm }) {
     setSlicesText('');
   };
 
-  // Don't mount DOM at all when hidden
+
   if (!visible) return null;
 
   return (

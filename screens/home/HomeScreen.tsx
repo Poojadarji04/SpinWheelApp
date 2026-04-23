@@ -5,7 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
+
   StatusBar,
   Animated,
   Alert,
@@ -15,12 +15,16 @@ import {
 } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import QuickPickerModal from './QuickPickerModal';
 import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 const STORAGE_KEY = 'SPIN_WHEELS_STORE_V3';
 
-/* ── Design Tokens ── */
+import * as Analytics from '../home/analytics';
+import firebase from '@react-native-firebase/app';
+import QuickPickerModal from './QuickPickerModal';
+
+
 const T = {
   bg: '#05050F',
   surface: 'rgba(255,255,255,0.04)',
@@ -61,14 +65,6 @@ const CARD_PALETTES: Palette[] = [
 
 function randomPalette(): Palette {
   return CARD_PALETTES[Math.floor(Math.random() * CARD_PALETTES.length)];
-}
-
-/* ── Safe vibration ── */
-function safeVibrate(pattern: number = 40): void {
-  try {
-    if (Platform.OS === 'android') Vibration.vibrate(pattern);
-    else Vibration.vibrate();
-  } catch (_) {}
 }
 
 function timeAgo(ts: number | null): string {
@@ -281,6 +277,9 @@ function WheelCard({ card, onDelete, navigation }: WheelCardProps) {
   const palette: Palette = card.palette || CARD_PALETTES[0];
 
   useEffect(() => {
+
+
+    console.log("Setup: ", firebase.app().name);
     Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, { toValue: 1, duration: 2800, useNativeDriver: true }),
@@ -289,16 +288,17 @@ function WheelCard({ card, onDelete, navigation }: WheelCardProps) {
     ).start();
   }, []);
 
-const glowOpacity = glowAnim.interpolate({
-  inputRange: [0, 1],
-  outputRange: [0.05, 0.12], // ✅ subtle glow
-});
+  const glowOpacity = glowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.05, 0.12], // ✅ subtle glow
+  });
   const handlePress = () => {
+
     Animated.sequence([
       Animated.timing(scale, { toValue: 0.97, duration: 80, useNativeDriver: true }),
       Animated.spring(scale, { toValue: 1, friction: 4, useNativeDriver: true }),
     ]).start();
-    safeVibrate(18);
+    Vibration.vibrate();
     navigation.navigate('SpinWheel', { wheel: card });
   };
 
@@ -312,7 +312,10 @@ const glowOpacity = glowAnim.interpolate({
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            safeVibrate(30);
+            Vibration.vibrate();
+            Analytics.logDeleteWheel(card.title);
+
+
             onDelete(card.id);
           },
         },
@@ -334,9 +337,9 @@ const glowOpacity = glowAnim.interpolate({
             <View style={{ flex: 1 }} />
             <View style={styles.timeChip}>
               <GlowDot color={palette.glow} style={{ marginRight: 5 }} />
-             <Text style={[styles.timeTxt, { color: palette.glow }]}>
-  {timeAgo(card.lastUsed)}
-</Text>
+              <Text style={[styles.timeTxt, { color: palette.glow }]}>
+                {timeAgo(card.lastUsed)}
+              </Text>
             </View>
           </View>
 
@@ -348,10 +351,10 @@ const glowOpacity = glowAnim.interpolate({
 
           <View style={styles.cardFooter}>
             <Text style={styles.spinCount}>
-{card.spinCount
-  ? `${card.spinCount} spins`
-  : `Spin ${card.segments.length} times`}
-</Text>
+              {card.spinCount
+                ? `${card.spinCount} spins`
+                : `Spin ${card.segments.length} times`}
+            </Text>
             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
               <TouchableOpacity
                 style={styles.deleteBtn}
@@ -392,6 +395,7 @@ function EmptyState() {
           <WheelIcon size={48} color={T.neon} />
         </View>
       </Animated.View>
+
       <Text style={styles.emptyTitle}>No Wheels Yet</Text>
       <Text style={styles.emptySub}>Create your first spin wheel and let fate decide.</Text>
       <View style={styles.emptyHint}>
@@ -418,10 +422,10 @@ function StatsBar({ count, totalSpins }: StatsBarProps) {
       </View>
       <View style={styles.statDivider} />
       <View style={styles.statItem}>
-       <Text style={[styles.statNum, { color: T.neonG }]}>
-  {totalSpins}
-</Text>
-<Text style={styles.statLabel}>Total Spins</Text>
+        <Text style={[styles.statNum, { color: T.neonG }]}>
+          {totalSpins}
+        </Text>
+        <Text style={styles.statLabel}>Total Spins</Text>
       </View>
     </View>
   );
@@ -442,6 +446,11 @@ export default function SpinWheelHome({ navigation }: HomeScreenProps) {
   useEffect(() => {
     Animated.timing(headerAnim, { toValue: 1, duration: 700, useNativeDriver: true }).start();
   }, []);
+
+  useEffect(() => {
+    Analytics.logAppOpen();
+  }, []);
+
 
   useFocusEffect(
     useCallback(() => {
@@ -470,6 +479,8 @@ export default function SpinWheelHome({ navigation }: HomeScreenProps) {
   }, [wheels, ready]);
 
   const handleCreate = useCallback(({ title, segments }: { title: string; segments: string[] }) => {
+
+
     setWheels((prev: WheelItem[]) => [
       {
         id: Date.now().toString(),
@@ -490,7 +501,8 @@ export default function SpinWheelHome({ navigation }: HomeScreenProps) {
   const headerTranslate = headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] });
 
   return (
-<SafeAreaView style={[styles.safe, { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }]}>
+    <SafeAreaView style={styles.safe}>
+
       <StatusBar barStyle="light-content" backgroundColor={T.bg} />
 
       <View style={styles.orbTopLeft} />
@@ -511,10 +523,10 @@ export default function SpinWheelHome({ navigation }: HomeScreenProps) {
         </View> */}
       </Animated.View>
 
-<StatsBar
-  count={wheels.length}
-  totalSpins={wheels.reduce((sum, w) => sum + (w.spinCount || 0), 0)}
-/>
+      <StatsBar
+        count={wheels.length}
+        totalSpins={wheels.reduce((sum, w) => sum + (w.spinCount || 0), 0)}
+      />
 
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         {wheels.length === 0 ? (
@@ -547,7 +559,7 @@ export default function SpinWheelHome({ navigation }: HomeScreenProps) {
         <TouchableOpacity
           style={styles.fab}
           onPress={() => {
-            safeVibrate(20);
+            Vibration.vibrate();
             setModal(true);
           }}
           activeOpacity={0.85}
@@ -613,21 +625,21 @@ const styles = StyleSheet.create({
 
   list: { paddingHorizontal: 16, paddingTop: 4 },
 
-card: {
-  borderRadius: 22,
-  position: 'relative',
-  overflow: 'hidden',
-  marginBottom: 14, // ✅ space between cards
+  card: {
+    borderRadius: 22,
+    position: 'relative',
+    overflow: 'hidden',
+    marginBottom: 14, // ✅ space between cards
 
-},
-cardGlow: {
-  position: 'absolute',
-  top: 6,
-  left: 6,
-  right: 6,
-  bottom: 6,
-  borderRadius: 18,
-},
+  },
+  cardGlow: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    right: 6,
+    bottom: 6,
+    borderRadius: 18,
+  },
   cardBody: {
     borderRadius: 22, padding: 18,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)', overflow: 'hidden',
@@ -680,11 +692,11 @@ cardGlow: {
     fontSize: 24, fontWeight: '800', color: T.text, letterSpacing: -0.3, marginBottom: 8,
   },
   spinCount: {
-  fontSize: 13,
-  color: '#FFFFFF',
-  fontWeight: '700',
-  letterSpacing: 0.3,
-},
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
   emptySub: {
     fontSize: 14, color: T.textDim, textAlign: 'center',
     lineHeight: 20, marginTop: 0, paddingHorizontal: 36,
@@ -713,3 +725,4 @@ cardGlow: {
   },
   fabText: { color: '#FFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
 });
+

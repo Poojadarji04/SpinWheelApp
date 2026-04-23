@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1018464605027",
+    "project_id": "spin-wheel-decision-maker",
+    "storage_bucket": "spin-wheel-decision-maker.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1018464605027:android:1c6aa30a838d3872547956",
+        "android_client_info": {
+          "package_name": "com.appziostudio.spinwheel"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCht0D3uz6z4SWWV01zqpeF93sNKP3U_W8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

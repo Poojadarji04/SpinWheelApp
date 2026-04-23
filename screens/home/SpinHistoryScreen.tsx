@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
+
   StatusBar,
   ScrollView,
   Alert,
@@ -12,9 +12,12 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const COLORS = [
-  "#FF8A65","#64B5F6","#81C784","#F06292","#FFD54F",
-  "#BA68C8","#4DD0E1","#A5D6A7","#FF8A80","#80DEEA",
+  "#FF8A65", "#64B5F6", "#81C784", "#F06292", "#FFD54F",
+  "#BA68C8", "#4DD0E1", "#A5D6A7", "#FF8A80", "#80DEEA",
 ];
+import * as Analytics from '../home/analytics';
+import { SafeAreaView } from "react-native-safe-area-context";
+
 
 function timeAgo(ts) {
   if (!ts) return "Never";
@@ -39,7 +42,7 @@ export default function SpinHistoryScreen({ route, navigation }) {
     try {
       const raw = await AsyncStorage.getItem(HISTORY_KEY);
       if (raw) setHistory(JSON.parse(raw));
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const clearHistory = () => {
@@ -71,12 +74,13 @@ export default function SpinHistoryScreen({ route, navigation }) {
   };
 
   return (
-<SafeAreaView style={[styles.safe, { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }]}>
+    <SafeAreaView style={styles.safe}>
+
 
       <StatusBar barStyle="light-content" backgroundColor="#080810" />
 
-<View style={styles.orbTopLeft} />
-  <View style={styles.orbBottomRight} />
+      <View style={styles.orbTopLeft} />
+      <View style={styles.orbBottomRight} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -143,24 +147,24 @@ export default function SpinHistoryScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#080810" },
   orbTopLeft: {
-  position: 'absolute',
-  top: -80,
-  left: -80,
-  width: 220,
-  height: 220,
-  borderRadius: 110,
-  backgroundColor: 'rgba(120,40,220,0.12)',
-},
+    position: 'absolute',
+    top: -80,
+    left: -80,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(120,40,220,0.12)',
+  },
 
-orbBottomRight: {
-  position: 'absolute',
-  bottom: 80,
-  right: -60,
-  width: 180,
-  height: 180,
-  borderRadius: 90,
-  backgroundColor: 'rgba(20,180,200,0.10)',
-},
+  orbBottomRight: {
+    position: 'absolute',
+    bottom: 80,
+    right: -60,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(20,180,200,0.10)',
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",

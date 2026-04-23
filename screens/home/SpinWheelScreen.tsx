@@ -7,7 +7,7 @@ import {
   Animated,
   Easing,
   Dimensions,
-  SafeAreaView,
+
   StatusBar,
   Vibration,
   Platform,
@@ -29,6 +29,7 @@ const { width, height } = Dimensions.get("window");
 const WHEEL_SIZE = width - 48;
 const R = WHEEL_SIZE / 2;
 const STORAGE_KEY = "SPIN_WHEELS_STORE_V3";
+import * as Analytics from '../home/analytics';
 
 const COLORS = [
   "#FF8A65", "#64B5F6", "#81C784", "#F06292", "#FFD54F",
@@ -48,6 +49,7 @@ import {
   playWin,
   releaseSounds,
 } from "./SoundUtility";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const SPIN_COUNT_KEY = "GLOBAL_SPIN_COUNT";
 
@@ -113,7 +115,7 @@ function WheelSvg({ segments }) {
         const lx = R + labelR * Math.cos(midRad);
         const ly = R + labelR * Math.sin(midRad);
         const labelRotation = midDeg > 180 ? midDeg - 180 : midDeg;
-const fontSize = getFontSize(seg, segments.length);
+        const fontSize = getFontSize(seg, segments.length);
 
         return (
           <G key={i}>
@@ -226,10 +228,10 @@ const updateWheel = async (wheelId: string) => {
   const updated = wheels.map((w: WheelItem) =>
     w.id === wheelId
       ? {
-          ...w,
-          spinCount: (w.spinCount || 0) + 1,
-          lastUsed: Date.now(),
-        }
+        ...w,
+        spinCount: (w.spinCount || 0) + 1,
+        lastUsed: Date.now(),
+      }
       : w
   );
 
@@ -259,56 +261,56 @@ export default function SpinWheelScreen({ route, navigation }) {
     );
   }
 
-useEffect(() => {
-  initSounds();
+  useEffect(() => {
+    initSounds();
 
-  return () => {
-    releaseSounds();
-  };
-}, []);
+    return () => {
+      releaseSounds();
+    };
+  }, []);
 
-const lastTick = useRef(-1);
+  const lastTick = useRef(-1);
 
-useEffect(() => {
-  const listener = animatedRot.addListener(({ value }) => {
-    const currentDeg = value % 360;
-    const slice = 360 / segments.length;
+  useEffect(() => {
+    const listener = animatedRot.addListener(({ value }) => {
+      const currentDeg = value % 360;
+      const slice = 360 / segments.length;
 
-    const index = Math.floor(currentDeg / slice);
+      const index = Math.floor(currentDeg / slice);
 
-    if (index !== lastTick.current) {
-      lastTick.current = index;
+      if (index !== lastTick.current) {
+        lastTick.current = index;
 
-      Vibration.vibrate(10);
-    }
-  });
+        Vibration.vibrate(10);
+      }
+    });
 
-  return () => {
-    animatedRot.removeListener(listener);
-  };
-}, [segments.length]);
+    return () => {
+      animatedRot.removeListener(listener);
+    };
+  }, [segments.length]);
 
-  useEffect (() => {
-  const unsubscribeLoaded = interstitial.addAdEventListener(
-    AdEventType.LOADED,
-    () => setIsAdLoaded(true)
-  );
+  useEffect(() => {
+    const unsubscribeLoaded = interstitial.addAdEventListener(
+      AdEventType.LOADED,
+      () => setIsAdLoaded(true)
+    );
 
-  const unsubscribeClosed = interstitial.addAdEventListener(
-    AdEventType.CLOSED,
-    () => {
-      setIsAdLoaded(false);
-      interstitial.load();
-    }
-  );
+    const unsubscribeClosed = interstitial.addAdEventListener(
+      AdEventType.CLOSED,
+      () => {
+        setIsAdLoaded(false);
+        interstitial.load();
+      }
+    );
 
-  interstitial.load();
+    interstitial.load();
 
-  return () => {
-    unsubscribeLoaded();
-    unsubscribeClosed();
-  };
-}, []);
+    return () => {
+      unsubscribeLoaded();
+      unsubscribeClosed();
+    };
+  }, []);
 
   const handleSpin = () => {
     if (isSpinning) return;
@@ -317,7 +319,7 @@ useEffect(() => {
     setResult(null);
     resultAnim.setValue(0);
     resultSlideAnim.setValue(60);
-lastTick.current = -1;
+    lastTick.current = -1;
     const winIndex = Math.floor(Math.random() * segments.length);
     const segCenter = winIndex * sliceAngle + sliceAngle / 2;
     const neededAngle = (360 - segCenter) % 360;
@@ -339,14 +341,14 @@ lastTick.current = -1;
       const winner = segments[winIndex];
 
       await saveHistory(wheel.id, winner);
-updateWheel(wheel.id);
+      updateWheel(wheel.id);
 
       setResult(winner);
       setIsSpinning(false);
       setShowResult(true);
 
-Vibration.vibrate(100);
-playWin();
+      Vibration.vibrate(100);
+      playWin();
       Animated.parallel([
         Animated.spring(resultAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
         Animated.spring(resultSlideAnim, { toValue: 0, tension: 60, friction: 8, useNativeDriver: true }),
@@ -356,12 +358,12 @@ playWin();
 
       const updatedCount = await incrementSpinCount();
 
-if (updatedCount % 2 === 0 && isAdLoaded) {
-  setTimeout(() => {
-    interstitial.show();
-  }, 800);
+      if (updatedCount % 2 === 0 && isAdLoaded) {
+        setTimeout(() => {
+          interstitial.show();
+        }, 800);
 
-}
+      }
 
 
     });
@@ -378,12 +380,12 @@ if (updatedCount % 2 === 0 && isAdLoaded) {
   };
 
   return (
-<SafeAreaView style={[styles.safe, { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }]}>
+    <SafeAreaView style={styles.safe}>
 
       <StatusBar barStyle="light-content" backgroundColor="#080810" />
 
-<View style={styles.orbTopLeft} />
-  <View style={styles.orbBottomRight} />
+      <View style={styles.orbTopLeft} />
+      <View style={styles.orbBottomRight} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>Back</Text>
@@ -417,10 +419,10 @@ if (updatedCount % 2 === 0 && isAdLoaded) {
       </View>
 
       <View style={styles.wheelWrap}>
-       <View style={styles.pointerWrap}>
-  <View style={styles.pointer} />
+        <View style={styles.pointerWrap}>
+          <View style={styles.pointer} />
 
-</View>
+        </View>
         <Animated.View style={{ transform: [{ rotate: spin }] }}>
           <WheelSvg segments={segments} />
         </Animated.View>
@@ -433,58 +435,60 @@ if (updatedCount % 2 === 0 && isAdLoaded) {
           disabled={isSpinning}
           activeOpacity={0.85}
         >
+          Analytics.logSpinResult(wheel.title, selectedSegment);
           <Text style={styles.spinText}>
             {isSpinning ? "Spinning..." : "Tap to Spin"}
           </Text>
         </TouchableOpacity>
       ) : (
-       <Animated.View
-  style={[
-    styles.bottomButtons,
-    { opacity: resultAnim, transform: [{ translateY: resultSlideAnim }] },
-  ]}
->
-  <TouchableOpacity
-    style={styles.spinAgainBtn}
-    onPress={handleSpin}
-  >
-    <Text style={styles.spinAgainText}>SPIN AGAIN</Text>
-  </TouchableOpacity>
-</Animated.View>
+        <Animated.View
+          style={[
+            styles.bottomButtons,
+            { opacity: resultAnim, transform: [{ translateY: resultSlideAnim }] },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.spinAgainBtn}
+            onPress={handleSpin}
+          >
+
+            <Text style={styles.spinAgainText}>SPIN AGAIN</Text>
+          </TouchableOpacity>
+        </Animated.View>
       )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  
+
   safe: { flex: 1, backgroundColor: "#080810", alignItems: "center" },
   orbTopLeft: {
-  position: 'absolute',
-  top: -80,
-  left: -80,
-  width: 220,
-  height: 220,
-  borderRadius: 110,
-  backgroundColor: 'rgba(120,40,220,0.12)',
-},
+    position: 'absolute',
+    top: -80,
+    left: -80,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(120,40,220,0.12)',
+  },
 
-orbBottomRight: {
-  position: 'absolute',
-  bottom: 80,
-  right: -60,
-  width: 180,
-  height: 180,
-  borderRadius: 90,
-  backgroundColor: 'rgba(20,180,200,0.10)',
-},
+  orbBottomRight: {
+    position: 'absolute',
+    bottom: 80,
+    right: -60,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(20,180,200,0.10)',
+  },
   container: { flex: 1, backgroundColor: "#080810", alignItems: "center", justifyContent: "center" },
   header: {
     width: "100%", flexDirection: "row",
     justifyContent: "space-between", alignItems: "center",
     paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4,
   },
- backBtn: {
+  backBtn: {
     paddingHorizontal: 10, height: 42, borderRadius: 21,
     backgroundColor: "#1A1A2E",
     alignItems: "center", justifyContent: "center",
@@ -500,28 +504,28 @@ orbBottomRight: {
     alignItems: "center", justifyContent: "center", zIndex: 1,
   },
   title: { color: "#FFF", fontSize: 26, fontWeight: "800" },
-  subtitle: { color: '#6C5CE7', fontSize: 22, marginTop: 6, fontWeight : "600" },
+  subtitle: { color: '#6C5CE7', fontSize: 22, marginTop: 6, fontWeight: "600" },
 
- pointerWrap: {
-  alignItems: "center",
-  zIndex: 20,
-  marginBottom: -18,
-},
+  pointerWrap: {
+    alignItems: "center",
+    zIndex: 20,
+    marginBottom: -18,
+  },
 
-pointer: {
-  width: 0,
-  height: 0,
-  borderLeftWidth: 16,
-  borderRightWidth: 16,
-  borderTopWidth: 34,
-  borderLeftColor: "transparent",
-  borderRightColor: "transparent",
-  borderTopColor: "#7C3AED",
-  shadowColor: "#7C3AED",
-  shadowOpacity: 0.9,
-  shadowRadius: 10,
-  elevation: 10,
-},
+  pointer: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 16,
+    borderRightWidth: 16,
+    borderTopWidth: 34,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderTopColor: "#7C3AED",
+    shadowColor: "#7C3AED",
+    shadowOpacity: 0.9,
+    shadowRadius: 10,
+    elevation: 10,
+  },
 
 
   wheelWrap: { alignItems: "center", justifyContent: "center", zIndex: 2 },
