@@ -32,7 +32,7 @@ export const playTick = () => {
     tickSound.play((success) => {
       if (!success) console.log("Tick failed");
     });
-  });
+  }); 
 };
 
 export const playWin = () => {

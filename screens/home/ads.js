@@ -6,7 +6,7 @@ import {
 
 const adUnitId = __DEV__
   ? TestIds.INTERSTITIAL
-  : 'ca-app-pub-xxxxxxxx/xxxxxxxx';
+  : 'pub-7990945987534842';
 
 export const interstitial = InterstitialAd.createForAdRequest(adUnitId, {
   requestNonPersonalizedAdsOnly: true,

@@ -45,7 +45,6 @@ const CONFETTI_SHAPES = ["square", "circle", "triangle", "rect"];
 
 import {
   initSounds,
-
   playWin,
   releaseSounds,
 } from "./SoundUtility";

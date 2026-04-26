@@ -290,7 +290,7 @@ function WheelCard({ card, onDelete, navigation }: WheelCardProps) {
 
   const glowOpacity = glowAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.05, 0.12], // ✅ subtle glow
+    outputRange: [0.05, 0.12],
   });
   const handlePress = () => {
 
